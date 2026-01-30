@@ -2,7 +2,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: free5gc 
-  namespace: demo
+  namespace: demo1
 spec:
   interval: 1m
   chart:
