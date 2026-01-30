@@ -7,15 +7,15 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: ./charts/free5gc 
-      version: '1.1.x'
+      chart: ./5g-control-plane
+      version: '2.2.x'
       sourceRef:
         kind: GitRepository
         name: free5gc-gitrepo
         namespace: flux-system
       reconcileStrategy: Revision
       interval: 1m
-  targetNamespace: demo
+  targetNamespace: demo1
   valuesFrom:
   - kind: ConfigMap
     name: 5gc-values
