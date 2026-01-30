@@ -7,7 +7,7 @@ spec:
   interval: 10s
   url: https://github.com/varun-chandramouli/ios-mcn-core-helm-chart
   ref:
-    branch: main
+    branch: iosmcnmaster
   ignore: |
     # exclude all
     /*
