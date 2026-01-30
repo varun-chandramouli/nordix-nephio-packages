@@ -5,7 +5,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10s
-  url: https://github.com/Orange-OpenSource/towards5gs-helm
+  url: https://github.com/varun-chandramouli/ios-mcn-core-helm-chart
   ref:
     branch: main
   ignore: |
