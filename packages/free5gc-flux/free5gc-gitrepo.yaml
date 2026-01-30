@@ -8,6 +8,8 @@ spec:
   url: https://github.com/varun-chandramouli/ios-mcn-core-helm-chart
   ref:
     branch: iosmcnmaster
+  secretRef:
+    name: free5gc-github-auth
   ignore: |
     # exclude all
     /*
