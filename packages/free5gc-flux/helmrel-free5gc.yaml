@@ -7,7 +7,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: ./5g-control-plane
+      chart: ./sdcore-helm-charts
       version: '2.2.x'
       sourceRef:
         kind: GitRepository
