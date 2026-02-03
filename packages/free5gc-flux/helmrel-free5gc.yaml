@@ -11,7 +11,7 @@ spec:
       version: '2.2.x'
       sourceRef:
         kind: GitRepository
-        name: free5gc-gitrepo
+        name: varun-free5gc-gitrepo
         namespace: flux-system
       reconcileStrategy: Revision
       interval: 1m
