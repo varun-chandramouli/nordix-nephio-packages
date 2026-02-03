@@ -10,8 +10,11 @@ spec:
     branch: iosmcnmaster
   secretRef:
     name: free5gc-github-auth
-  ignore: |
-    # exclude all
-    /*
-    # include charts dir
-    !/sdcore-helm-charts/**
+ignore: |
+  /*
+  !/sdcore-helm-charts/**
+  !/5g-control-plane/**
+  !/omec-control-plane/**
+  !/bess-upf/**
+  !/omec-sub-provision/**
+  !/5g-ran-sim/**
