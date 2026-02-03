@@ -5,111 +5,315 @@ metadata:
 apiVersion: v1
 data:
   values.yaml: |+
-    global:
-      name: free5gc
-      userPlaneArchitecture: single  # possible values are "single" and "ulcl"
-      nrf:
-        service:
-          name: nrf-nnrf
-          type: ClusterIP
-          port: "8000"
-          nodePort: "30800"
-      sbi:
-        scheme: http
-      amf:
-        n2if:  # NGAP
-          ipAddress: 10.100.50.249
-        service:
-          ngap:
-            enabled: false
-            name: amf-n2
-            port: 38412
-            nodeport: 31412
-            protocol: SCTP
-            type: NodePort
-      smf:
-        n4if:
-          ipAddress: 10.100.50.244
-      #Global network parametes
-      n2network:
-        enabled: true
-        name: n2network
-        type: ipvlan
-        masterIf: eth0
-        subnetIP: 10.100.50.248
-        cidr: 29
-        gatewayIP: 10.100.50.254
-        excludeIP: 10.100.50.254
-      n3network:
-        enabled: true
-        name: n3network
-        type: ipvlan
-        masterIf: eth0
-        subnetIP: 10.100.50.232
-        cidr: 29
-        gatewayIP: 10.100.50.238
-        excludeIP: 10.100.50.238
-      n4network:
-        enabled: true
-        name: n4network
-        type: ipvlan
-        masterIf: eth0
-        subnetIP: 10.100.50.240
-        cidr: 29
-        gatewayIP: 10.100.50.246
-        excludeIP: 10.100.50.246
-      n6network:
-        enabled: true
-        name: n6network
-        type: ipvlan
-        masterIf: eth1
-        subnetIP: 10.100.100.0
-        cidr: 24
-        gatewayIP: 10.100.100.1
-        excludeIP: 10.100.100.254
-      n9network:
-        enabled: true
-        name: n9network
-        type: ipvlan
-        masterIf: eth0
-        subnetIP: 10.100.50.224
-        cidr: 29
-        gatewayIP: 10.100.50.230
-        excludeIP: 10.100.50.230
+    # Disable 4G Control Plane
+omec-control-plane:
+  enable4G: false
 
+# Disable 5G RAN Simulator
+5g-ran-sim:
+  enable: false
 
-    # These parameters can be used to enable/disable deployment of subcharts
-    deployMongoDb: true
-    deployAmf: true
-    deployAusf: true
-    deployN3iwf: false
-    deployNrf: true
-    deployNssf: true
-    deployPcf: true
-    deploySmf: true
-    deployUdm: true
-    deployUdr: true
-    deployUpf: true
-    deployWebui: true
-    deployDbPython: true
+# Override values for 5g-control-plane Helm Chart
+# https://github.com/omec-project/sdcore-helm-charts/blob/main/5g-control-plane/values.yaml
+5g-control-plane:
+  enable5G: true
+  images:
+    repository: ""    # defaults to Docker Hub
+    tags:
+      amf: ghcr.io/ios-mcn/5gc-amf:v0.4.0
+      smf: ghcr.io/ios-mcn/5gc-smf:v0.4.0
+      pcf: ghcr.io/ios-mcn/5gc-pcf:release-v0.4.0
+      nrf: ghcr.io/ios-mcn/5gc-nrf:release-0.2.1
+      ausf: ghcr.io/ios-mcn/5gc-ausf:release-0.2.1
+      nssf: ghcr.io/ios-mcn/5gc-nssf:v0.4.0
+      udm: ghcr.io/ios-mcn/5gc-udm:v0.4.0
+      udr: ghcr.io/ios-mcn/5gc-udr:v0.4.0
+      webui: ghcr.io/ios-mcn/5gc-webui:v0.4.0
+      metricfunc: ghcr.io/ios-mcn/metricfunc:release-0.2.1
+    # refer to above Helm Chart to add other NF images
 
-    # Disable the deployment of mongodb as an NRF subchart
-    free5gc-nrf:
-      db:
-        enabled: false
+  kafka:
+    deploy: true
+    image:
+      repository: bitnamilegacy/kafka
 
-    # This section can be used to override the default values in the MongoDB chart
+  mongodb:
+    usePassword: false
+    persistence:
+      enabled: false
+    architecture: replicaset
+    replicaCount: 2
+    image:
+      repository: bitnamilegacy/mongodb
+
+  resources:
+    enabled: false
+
+  config:
+   # logger:
+    #  Util:
+     #   debugLevel: warn
+    #   # network function
+    #   AMF:
+    #     debugLevel: trace
+    #   SMF:
+    #     debugLevel: trace
+
     mongodb:
-      fullnameOverride: "mongodb"
-      useStatefulSet: true
-      auth:
-        enabled: false
-      persistence:
-        size: 6Gi
-        mountPath: /bitnami/mongodb/data/db/
-      service:
-        name: mongodb
-        type: ClusterIP
-        port: 27017
-        nodePort: "30017"
+      name: iosmcn
+      url: mongodb://mongodb-arbiter-headless # Enable if cluster deployment required
+      authKeysDbName: authentication
+      authUrl: mongodb://mongodb-arbiter-headless
+
+    managedByConfigPod:
+      enabled: true
+
+    sctplb:
+      deploy: false # If enabled then deploy sctp pod
+      ngapp:
+        externalIp: {{ core.amf.ip }}
+        port: 38412
+
+    upfadapter:
+      deploy: false # If enabled then deploy upf adapter pod
+
+    metricfunc:
+      deploy: true
+      cfgFiles:
+        metricscfg.yaml:
+          configuration:
+            controllerFlag: {{ core.closed_loop | default('false') }}
+            userAppApiServer:
+              addr: "upf"
+    # Change AMF config here if rquired
+    # Most of the AMF config comes from Slice APIs but some of the config is
+    # directly provided through Helm Charts
+    amf:
+      cfgFiles:
+        amfcfg.yaml:
+          configuration:
+            enableDBStore: true # Store AMF subscribers in the datastore
+            networkFeatureSupport5GS: # 5gs Network Feature Support IE, refer to TS 24.501 sec. 9.11.3.5
+              imsVoPS: 1 # IMS voice over PS session indicator (uinteger, range: 0~1)
+            # security:
+            #   integrityOrder:
+            #     - NIA3
+            #     - NIA2
+            #     - NIA0
+            #   cipheringOrder:
+            #     - NEA3
+            #     - NEA2
+            #     - NEA0
+
+    # SMF config override. Refer to Helm Charts values for more options
+    smf:
+      cfgFiles:
+        smfcfg.yaml:
+          configuration:
+            enableDBStore: true  # Store SMF subscribers in the datastore
+            # staticIpInfo:
+            #   - dnn: internet
+            #     imsiIpInfo:
+            #       imsi-208930100007510: "172.250.0.100"
+            #       imsi-208930100007511: "172.250.0.101"
+            #       imsi-208930100007512: "172.250.0.102"
+            #       imsi-208930100007513: "172.250.0.103"
+            #       imsi-208930100007514: "172.250.0.104"
+
+    #pcf:
+    #  cfgFiles:
+    #    pcfcfg.yaml:
+    #      configuration:
+
+    nrf:
+      cfgFiles:
+        nrfcfg.yaml:
+          configuration:
+            mongoDBStreamEnable: false    # enable/disable MongoDB stream in NRF
+            nfProfileExpiryEnable: true   # If enabled, remove NF profile if no keepalive received
+            nfKeepAliveTime: 60           # default timeout for NF profiles
+
+    webui:
+      cfgFiles:
+        webuicfg.yaml:
+          configuration:
+            managedByConfigPod:
+              enabled: {{ not core.standalone }}
+              syncUrl: http://roc-sdcore-adapter-v2-1.aether-roc.svc:8080/synchronize
+
+# Override values for omec-sub-provision (subscriber) Helm Chart
+# https://github.com/omec-project/sdcore-helm-charts/blob/main/omec-sub-provision/values.yaml
+# ***Note: Most of these values can (and should) be set via ROC API***
+omec-sub-provision:
+  enable: true
+  images:
+    repository: ""    # defaults to Docker Hub
+    tags:
+      simapp: ghcr.io/ios-mcn/simapp:release-0.2.2
+  config:
+    simapp:
+      cfgFiles:
+        simapp.yaml:
+          configuration:
+            provision-network-slice: {{ core.standalone | string }} # if enabled, Device Groups & Slices configure by simapp
+            sub-provision-endpt:
+              addr: webui  # subscriber configuation endpoint.
+            # sub-proxy-endpt: # used if subscriber proxy is enabled in the ROC.
+            #   addr: subscriber-proxy.aether-roc.svc.cluster.local
+            #   port: 5000
+
+            # Configure Subscriber IMSIs and their security details.
+            # You can have any number of subscriber ranges
+            # This block is always necessary to establish range(s) of valid IMSIs
+            subscribers:
+            - ueId-start: "001010000000001"
+              ueId-end: "001010000000012"
+              plmnId: "00101"
+              opc: "C42449363BBAD02B66D16BC975D77CC1"
+              op: ""
+              key: "fec86ba6eb707ed08905757b1bb44b8f"
+              sequenceNumber: "16f3b3f70fc2"
+
+            # Configure Device Groups (ignored if provision-network-slice is disabled)
+            device-groups:
+            - name:  "gnbsim-user-group1"
+              imsis:
+                - "001010000000001"
+                - "001010000000002" 
+                - "001010000000003"
+                - "001010000000004"
+                - "001010000000005"
+                - "001010000000006"
+                - "001010000000007"
+                - "001010000000008"
+                - "001010000000009"
+                - "001010000000010"
+                - "001010000000011"
+                - "001010000000012"
+              msisdns:
+                - "msisdn-9000000001"
+                - "msisdn-9000000002"
+                - "msisdn-9000000003"
+                - "msisdn-9000000004"
+                - "msisdn-9000000005"
+                - "msisdn-9000000006"
+                - "msisdn-9000000007"
+                - "msisdn-9000000008"
+                - "msisdn-9000000009"
+                - "msisdn-9000000010"
+                - "msisdn-9000000011"
+                - "msisdn-9000000012"
+              ip-domain-name: "IP-Domains"
+              ip-domains:
+                - dnn: internet
+                  dns-primary: "1.1.1.1"
+                  mtu: 1456
+                  ue-ip-pool: "172.250.0.0/16"
+                  ue-dnn-qos:
+                    dnn-mbr-downlink: 1000
+                    dnn-mbr-uplink: 1000
+                    bitrate-unit: Mbps
+                    traffic-class:
+                      name: "platinum"
+                      qci: 9
+                      arp: 6
+                      pdb: 300
+                      pelr: 6
+              site-info: "enterprise"
+            # UPF allocates IP address if there is only 1 device-group
+            # SMF allocates IP address if there is >1 device-group
+
+            # Configure Network Slices (ignored if provision-network-slice is disabled)
+            network-slices:
+            - name: "default"      # can be any unique slice name
+              slice-id:            # must match with slice configured in gNB, UE
+                sd: "000000"
+                sst: 1
+              site-device-group:
+              - "gnbsim-user-group1"   # All UEs in this device-group are assigned to this slice
+              # Applicaiton filters control what each user can access.
+              # Default, allow access to all applications
+              application-filtering-rules:
+              - rule-name: "ALLOW-ALL"
+                priority: 250
+                action: "permit"
+                endpoint: "0.0.0.0/0"
+              site-info:
+                # Provide gNBs and UPF details and also PLMN for the site
+                gNodeBs:
+                - name: "gnb1"
+                  tac: 1
+                - name: "gnb2"
+                  tac: 2
+                plmn:
+                  mcc: "001"
+                  mnc: "01"
+                site-name: "enterprise"
+                upf:
+                  upf-name: "upf"  # associated UPF for this slice. One UPF per Slice.
+                  upf-port: 8805
+
+# Override values for omec-user-plane Helm Chart
+# https://github.com/omec-project/sdcore-helm-charts/blob/main/bess-upf/values.yaml
+omec-user-plane:
+  enable: true
+  nodeSelectors:
+    enabled: true
+  resources:
+    enabled: false
+  images:
+    repository: ""    # defaults to Docker Hub
+    # following two lines pull busybox from Docker Hub instead of Aether Registry
+    tags:
+      tools: omecproject/busybox:stable
+    # uncomment following section to add update bess image tag
+    tags:
+      bess: ghcr.io/ios-mcn/upf-epc-bess:release-ivybridge-v0.4.0
+      pfcpiface: ghcr.io/ios-mcn/upf-epc-pfcpiface:release-ivybridge-v0.4.0
+  config:
+    upf:
+      name: "oaisim"
+      sriov:
+        enabled: false    # SRIOV is disabled by default
+      hugepage:
+        enabled: false    # Should be enabled if DPDK is enabled
+      routes:
+        - to: {{ ansible_default_ipv4.address }}
+          via: 169.254.1.1
+      enb:
+        subnet: {{ ran_subnet }} # Subnet for the gNB network
+      access:
+        ipam: static
+        cniPlugin: macvlan  # Can be any other plugin. Dictates how IP address are assigned
+        iface: {{ core.data_iface }}
+        gateway: {{ access_gw }}
+        ip: {{ access_ip }}
+      core:
+        ipam: static
+        cniPlugin: macvlan  # Can be any other plugin. Dictates how IP address are assigned
+        iface: {{ core.data_iface }}
+        gateway: {{ core_gw }}
+        ip: {{ core_ip }}
+      cfgFiles:
+        upf.jsonc:
+          mode: af_packet                # This mode implies no DPDK
+          hwcksum: true
+          log_level: "info"
+          measure_upf: true
+          measure_flow: false
+          gtppsc: true                   # Extension header enabled in 5G.
+          cpiface:
+            dnn_list:
+              - dnn: "internet"
+                ue_ip_pool: "172.250.0.0/16" 
+            enable_ue_ip_alloc: false    # If true, UPF allocates address from following pool
+            ue_ip_pool: {{ core.upf.default_upf.ue_ip_pool }} # IP pool used UEs if enable_ue_ip_alloc=true
+          slice_rate_limit_config:       # Slice-level rate limiting (also controlled by ROC)
+            # Uplink
+            n6_bps: 10000000000          # 10Gbps
+            n6_burst_bytes: 12500000     # 10ms * 10Gbps
+            # Downlink
+            n3_bps: 10000000000          # 10Gbps
+            n3_burst_bytes: 12500000     # 10ms * 10Gbps
+
 
