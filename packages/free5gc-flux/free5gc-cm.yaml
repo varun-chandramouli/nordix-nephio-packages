@@ -281,7 +281,7 @@ omec-user-plane:
         - to: 192.168.0.36
           via: 169.254.1.1
       enb:
-        subnet: {{ ran_subnet }} # Subnet for the gNB network
+        subnet: '10.10.0.0/16' # Subnet for the gNB network
       access:
         ipam: static
         cniPlugin: macvlan  # Can be any other plugin. Dictates how IP address are assigned
