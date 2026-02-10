@@ -37,6 +37,7 @@ data:
         image:
           repository: bitnamilegacy/kafka
       mongodb:
+        deploy: true
         usePassword: false
         persistence:
           enabled: false
