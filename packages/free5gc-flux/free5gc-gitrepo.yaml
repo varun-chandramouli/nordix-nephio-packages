@@ -7,7 +7,7 @@ spec:
   interval: 10s
   url: https://github.com/varun-chandramouli/ios-mcn-core-helm-chart
   ref:
-    branch: v1
+    branch: nephio-deploy-test
   secretRef:
     name: free5gc-github-auth
   ignore: |
