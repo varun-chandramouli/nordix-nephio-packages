@@ -15,23 +15,6 @@ data:
       enable: false
     # Override values for 5g-control-plane Helm Chart
     # https://github.com/omec-project/sdcore-helm-charts/blob/main/5g-control-plane/values.yaml
-    mongodb:
-      deploy: true
-      usePassword: false
-      persistence:
-        enabled: false
-      architecture: replicaset
-      replicaCount: 2
-      image:
-        repository: bitnamilegacy/mongodb
-
-    kafka:
-      deploy: true
-      image:
-        repository: bitnamilegacy/kafka
-
-    prometheus:
-      deploy: true
     "5g-control-plane":
       enable5G: true
       images:
