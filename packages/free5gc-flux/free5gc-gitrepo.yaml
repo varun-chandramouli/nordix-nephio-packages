@@ -7,7 +7,7 @@ spec:
   interval: 10s
   url: https://github.com/varun-chandramouli/ios-mcn-core-helm-chart
   ref:
-    branch: iosmcnmaster
+    branch: v1
   secretRef:
     name: free5gc-github-auth
   ignore: |
