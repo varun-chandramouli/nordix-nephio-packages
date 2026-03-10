@@ -259,7 +259,6 @@ data:
       images:
         repository: "" # defaults to Docker Hub
         tags:
-          tools: omecproject/busybox:stable
           bess: ghcr.io/ios-mcn/upf-epc-bess:release-ivybridge-v0.4.0
           pfcpiface: ghcr.io/ios-mcn/upf-epc-pfcpiface:release-ivybridge-v0.4.0
       config:
