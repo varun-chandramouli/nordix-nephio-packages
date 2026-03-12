@@ -1,22 +1,23 @@
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: ueransim
-  namespace: demo
+  name: iosmcncore 
+  namespace: iosmcncore
 spec:
   interval: 1m
   chart:
     spec:
-      chart: ./charts/ueransim 
-      version: '2.0.x'
+      chart: ./sdcore-helm-charts
+      version: '2.2.x'
       sourceRef:
         kind: GitRepository
-        name: free5gc-gitrepo
+        name: iosmcn-core-gitrepo
         namespace: flux-system
       reconcileStrategy: Revision
       interval: 1m
-  targetNamespace: demo
+  targetNamespace: iosmcncore
   valuesFrom:
   - kind: ConfigMap
-    name: ue-values
+    name: iosmcncore-values
     valuesKey: values.yaml
+
